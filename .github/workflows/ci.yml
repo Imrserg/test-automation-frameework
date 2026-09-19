@@ -1,0 +1,102 @@
+name: Main Suite
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run lint
+
+  api-tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run test:api
+
+  web-tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:web
+
+  android-tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Install Appium UiAutomator2 driver
+        working-directory: packages/mobile-tests
+        run: npx appium driver install uiautomator2@4.0.0
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run Android tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          # ім'я AVD збігається з дефолтом ANDROID_AVD_NAME у env.ts —
+          # додаткові env-змінні для CI не потрібні.
+          avd-name: Pixel_6_API_33
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          working-directory: packages/mobile-tests
+          script: npm run test:android
+
+  ios-tests:
+    runs-on: macos-latest
+    needs: lint
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Install Appium XCUITest driver
+        working-directory: packages/mobile-tests
+        run: npx appium driver install xcuitest@9.0.0
+      - name: Detect available iOS simulator
+        run: |
+          RUNTIME=$(xcrun simctl list runtimes available -j | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['runtimes'][-1]['version'])")
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d = json.load(sys.stdin)
+          runtime_suffix = '$RUNTIME'.replace('.', '-')
+          for runtime_id, devices in d['devices'].items():
+              if runtime_suffix in runtime_id:
+                  iphones = [x['name'] for x in devices if 'iPhone' in x['name']]
+                  if iphones:
+                      print(iphones[-1])
+                      break
+          ")
+          echo "IOS_PLATFORM_VERSION=$RUNTIME" >> "$GITHUB_ENV"
+          echo "IOS_DEVICE_NAME=$DEVICE" >> "$GITHUB_ENV"
+      - run: npm run test:ios

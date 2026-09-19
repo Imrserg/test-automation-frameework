@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Env files (local/machine-specific overrides — see .env.example)
+.env
+.env.local
+
+# Test artifacts
+allure-results/
+allure-report/
+combined-report/
+test-results/
+playwright-report/
+blob-report/
+
+# Editor/tooling
+.claude/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
