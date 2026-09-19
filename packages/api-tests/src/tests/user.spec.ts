@@ -1,7 +1,7 @@
 import { suite } from 'allure-js-commons';
 import { test, expect } from '../fixtures/api.fixture';
 import { CreateUserRequestBuilder } from '../data/create-user.builder';
-import { CreateUserResponse, UserProfile } from '../clients/user-api.types';
+import { CreateUserResponseSchema, UserProfileSchema } from '../clients/user-api.types';
 
 test.describe('Users API', () => {
     test.beforeEach(async () => {
@@ -12,7 +12,7 @@ test.describe('Users API', () => {
         const user = new CreateUserRequestBuilder().build();
 
         const response = await userClient.createUser(user);
-        const body: CreateUserResponse = await response.json();
+        const body = CreateUserResponseSchema.parse(await response.json());
 
         expect(response.status()).toBe(201);
         expect(body.user.email).toBe(user.email);
@@ -22,10 +22,10 @@ test.describe('Users API', () => {
     test('Should get the current user by token', async ({ userClient }) => {
         const user = new CreateUserRequestBuilder().build();
         const created = await userClient.createUser(user);
-        const { token } = (await created.json()) as CreateUserResponse;
+        const { token } = CreateUserResponseSchema.parse(await created.json());
 
         const response = await userClient.getUser(token);
-        const body: UserProfile = await response.json();
+        const body = UserProfileSchema.parse(await response.json());
 
         expect(response.status()).toBe(200);
         expect(body.email).toBe(user.email);
@@ -34,11 +34,11 @@ test.describe('Users API', () => {
     test('Should update the current user by token', async ({ userClient }) => {
         const user = new CreateUserRequestBuilder().build();
         const created = await userClient.createUser(user);
-        const { token } = (await created.json()) as CreateUserResponse;
+        const { token } = CreateUserResponseSchema.parse(await created.json());
 
         const updatedEmail = `updated_${Date.now()}@test.com`;
         const response = await userClient.updateUser(token, { firstName: 'Updated', email: updatedEmail });
-        const body: UserProfile = await response.json();
+        const body = UserProfileSchema.parse(await response.json());
 
         expect(response.status()).toBe(200);
         expect(body.firstName).toBe('Updated');
@@ -48,7 +48,7 @@ test.describe('Users API', () => {
     test('Should delete the current user by token', async ({ userClient }) => {
         const user = new CreateUserRequestBuilder().build();
         const created = await userClient.createUser(user);
-        const { token } = (await created.json()) as CreateUserResponse;
+        const { token } = CreateUserResponseSchema.parse(await created.json());
 
         const response = await userClient.deleteUser(token);
 
