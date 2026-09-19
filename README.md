@@ -72,8 +72,7 @@ npm run report:combined
 ## CI/CD
 
 `.github/workflows/ci.yml` — lint → api-tests + web-tests на кожен PR;
-android/ios-tests — за ручним запуском (`workflow_dispatch`), бо повільніші
-й вимагають окремих (macOS для iOS) runner'ів.
+android/ios-tests — за ручним запуском (`workflow_dispatch`)
 
 ## Наступні кроки для розширення
 
