@@ -25,6 +25,13 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm run test:api
+      - name: Upload Allure results (api)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-api
+          path: packages/api-tests/allure-results
+          retention-days: 7
 
   web-tests:
     runs-on: ubuntu-latest
@@ -37,6 +44,13 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:web
+      - name: Upload Allure results (web)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-web
+          path: packages/web-tests/allure-results
+          retention-days: 7
 
   android-tests:
     runs-on: ubuntu-latest
@@ -69,6 +83,13 @@ jobs:
           disable-animations: true
           working-directory: packages/mobile-tests
           script: npm run test:android
+      - name: Upload Allure results (android)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-android
+          path: packages/mobile-tests/allure-results
+          retention-days: 7
 
   ios-tests:
     runs-on: macos-latest
@@ -100,3 +121,40 @@ jobs:
           echo "IOS_PLATFORM_VERSION=$RUNTIME" >> "$GITHUB_ENV"
           echo "IOS_DEVICE_NAME=$DEVICE" >> "$GITHUB_ENV"
       - run: npm run test:ios
+      - name: Upload Allure results (ios)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-ios
+          path: packages/mobile-tests/allure-results
+          retention-days: 7
+
+  allure-report:
+    runs-on: ubuntu-latest
+    needs: [api-tests, web-tests, android-tests, ios-tests]
+    if: always()
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-*
+          path: raw-results
+      - name: Assemble allure-results per package
+        run: |
+          mkdir -p packages/api-tests/allure-results packages/web-tests/allure-results packages/mobile-tests/allure-results
+          cp -r raw-results/allure-results-api/. packages/api-tests/allure-results/ 2>/dev/null || true
+          cp -r raw-results/allure-results-web/. packages/web-tests/allure-results/ 2>/dev/null || true
+          cp -r raw-results/allure-results-android/. packages/mobile-tests/allure-results/ 2>/dev/null || true
+          cp -r raw-results/allure-results-ios/. packages/mobile-tests/allure-results/ 2>/dev/null || true
+      - run: npm run report:combined
+      - name: Deploy report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./combined-report
