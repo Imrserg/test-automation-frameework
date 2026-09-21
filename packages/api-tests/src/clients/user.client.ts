@@ -20,7 +20,9 @@ export class UserApiClient extends BaseApiClient implements IUserApiClient {
     }
 
     async updateUser(token: string, updates: Partial<CreateUserRequest>): Promise<APIResponse> {
-        return await step('Update current user', () => this.patch('/me', updates, { Authorization: `Bearer ${token}` }));
+        return await step('Update current user', () =>
+            this.patch('/me', updates, { Authorization: `Bearer ${token}` }),
+        );
     }
 
     async deleteUser(token: string): Promise<APIResponse> {

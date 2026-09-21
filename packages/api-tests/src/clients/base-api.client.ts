@@ -18,6 +18,10 @@ export abstract class BaseApiClient {
         return this.request.post(`${this.basePath}${path}`, { data });
     }
 
+    protected put(path: string, data: unknown): Promise<APIResponse> {
+        return this.request.put(`${this.basePath}${path}`, { data });
+    }
+
     protected patch(path: string, data: unknown, headers?: Record<string, string>): Promise<APIResponse> {
         return this.request.patch(`${this.basePath}${path}`, { data, headers });
     }

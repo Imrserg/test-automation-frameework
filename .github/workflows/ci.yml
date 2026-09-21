@@ -1,190 +1,190 @@
 name: Automation test suite
 
 on:
-  pull_request:
-  workflow_dispatch:
-    inputs:
-      suite:
-        description: 'Which test suite to run'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - all
-          - api
-          - web
-          - android
-          - ios
+    pull_request:
+    workflow_dispatch:
+        inputs:
+            suite:
+                description: 'Which test suite to run'
+                required: true
+                default: 'all'
+                type: choice
+                options:
+                    - all
+                    - api
+                    - web
+                    - android
+                    - ios
 
 jobs:
-  lint:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - run: npm ci
-      - run: npm run lint
+    lint:
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+            - run: npm ci
+            - run: npm run lint
 
-  api-tests:
-    runs-on: ubuntu-24.04
-    needs: lint
-    if: github.event_name == 'pull_request' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'api'
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - run: npm ci
-      - run: npm run test:api
-      - name: Upload Allure results (api)
+    api-tests:
+        runs-on: ubuntu-24.04
+        needs: lint
+        if: github.event_name == 'pull_request' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'api'
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+            - run: npm ci
+            - run: npm run test:api
+            - name: Upload Allure results (api)
+              if: always()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: allure-results-api
+                  path: packages/api-tests/allure-results
+                  retention-days: 7
+
+    web-tests:
+        runs-on: ubuntu-24.04
+        needs: lint
+        if: github.event_name == 'pull_request' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'web'
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+            - run: npm ci
+            - run: npx playwright install --with-deps chromium firefox webkit
+            - run: npm run test:web
+            - name: Upload Allure results (web)
+              if: always()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: allure-results-web
+                  path: packages/web-tests/allure-results
+                  retention-days: 7
+
+    android-tests:
+        runs-on: ubuntu-24.04
+        needs: lint
+        if: github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'all' || github.event.inputs.suite == 'android')
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+            - run: npm ci
+            - name: Install Appium UiAutomator2 driver
+              working-directory: packages/mobile-tests
+              run: npx appium driver install uiautomator2@4.0.0
+            - name: Enable KVM group perms
+              run: |
+                  echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+                  sudo udevadm control --reload-rules
+                  sudo udevadm trigger --name-match=kvm
+            - name: Free disk space for Android SDK + emulator
+              run: |
+                  sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+                  sudo docker image prune --all --force 2>/dev/null || true
+                  df -h /
+            - name: Run Android tests
+              uses: reactivecircus/android-emulator-runner@v2
+              with:
+                  # ім'я AVD збігається з дефолтом ANDROID_AVD_NAME у env.ts —
+                  # додаткові env-змінні для CI не потрібні.
+                  avd-name: Pixel_6_API_33
+                  api-level: 33
+                  target: google_apis
+                  arch: x86_64
+                  # Дефолтний розмір диска для цього system image (~7.4GB) не
+                  # вміщався на раннері (FATAL: Not enough space to create
+                  # userdata partition) — явно задаємо менший, достатній для
+                  # цього невеликого демо-застосунку.
+                  disk-size: 6000M
+                  emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim -camera-back none
+                  disable-animations: true
+                  working-directory: packages/mobile-tests
+                  script: npm run test:android
+            - name: Upload Allure results (android)
+              if: always()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: allure-results-android
+                  path: packages/mobile-tests/allure-results
+                  retention-days: 7
+
+    ios-tests:
+        runs-on: macos-latest
+        needs: lint
+        if: github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'all' || github.event.inputs.suite == 'ios')
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+            - run: npm ci
+            - name: Install Appium XCUITest driver
+              working-directory: packages/mobile-tests
+              run: npx appium driver install xcuitest@9.0.0
+            - name: Detect available iOS simulator
+              run: |
+                  RUNTIME=$(xcrun simctl list runtimes available -j | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['runtimes'][-1]['version'])")
+                  DEVICE=$(xcrun simctl list devices available -j | python3 -c "
+                  import json,sys
+                  d = json.load(sys.stdin)
+                  runtime_suffix = '$RUNTIME'.replace('.', '-')
+                  for runtime_id, devices in d['devices'].items():
+                      if runtime_suffix in runtime_id:
+                          iphones = [x['name'] for x in devices if 'iPhone' in x['name']]
+                          if iphones:
+                              print(iphones[-1])
+                              break
+                  ")
+                  echo "IOS_PLATFORM_VERSION=$RUNTIME" >> "$GITHUB_ENV"
+                  echo "IOS_DEVICE_NAME=$DEVICE" >> "$GITHUB_ENV"
+            - run: npm run test:ios
+            - name: Upload Allure results (ios)
+              if: always()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: allure-results-ios
+                  path: packages/mobile-tests/allure-results
+                  retention-days: 7
+
+    allure-report:
+        runs-on: ubuntu-24.04
+        needs: [api-tests, web-tests, android-tests, ios-tests]
         if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: allure-results-api
-          path: packages/api-tests/allure-results
-          retention-days: 7
-
-  web-tests:
-    runs-on: ubuntu-24.04
-    needs: lint
-    if: github.event_name == 'pull_request' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'web'
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm run test:web
-      - name: Upload Allure results (web)
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: allure-results-web
-          path: packages/web-tests/allure-results
-          retention-days: 7
-
-  android-tests:
-    runs-on: ubuntu-24.04
-    needs: lint
-    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'all' || github.event.inputs.suite == 'android')
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - run: npm ci
-      - name: Install Appium UiAutomator2 driver
-        working-directory: packages/mobile-tests
-        run: npx appium driver install uiautomator2@4.0.0
-      - name: Enable KVM group perms
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-      - name: Free disk space for Android SDK + emulator
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
-          sudo docker image prune --all --force 2>/dev/null || true
-          df -h /
-      - name: Run Android tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          # ім'я AVD збігається з дефолтом ANDROID_AVD_NAME у env.ts —
-          # додаткові env-змінні для CI не потрібні.
-          avd-name: Pixel_6_API_33
-          api-level: 33
-          target: google_apis
-          arch: x86_64
-          # Дефолтний розмір диска для цього system image (~7.4GB) не
-          # вміщався на раннері (FATAL: Not enough space to create
-          # userdata partition) — явно задаємо менший, достатній для
-          # цього невеликого демо-застосунку.
-          disk-size: 6000M
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim -camera-back none
-          disable-animations: true
-          working-directory: packages/mobile-tests
-          script: npm run test:android
-      - name: Upload Allure results (android)
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: allure-results-android
-          path: packages/mobile-tests/allure-results
-          retention-days: 7
-
-  ios-tests:
-    runs-on: macos-latest
-    needs: lint
-    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'all' || github.event.inputs.suite == 'ios')
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - run: npm ci
-      - name: Install Appium XCUITest driver
-        working-directory: packages/mobile-tests
-        run: npx appium driver install xcuitest@9.0.0
-      - name: Detect available iOS simulator
-        run: |
-          RUNTIME=$(xcrun simctl list runtimes available -j | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['runtimes'][-1]['version'])")
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c "
-          import json,sys
-          d = json.load(sys.stdin)
-          runtime_suffix = '$RUNTIME'.replace('.', '-')
-          for runtime_id, devices in d['devices'].items():
-              if runtime_suffix in runtime_id:
-                  iphones = [x['name'] for x in devices if 'iPhone' in x['name']]
-                  if iphones:
-                      print(iphones[-1])
-                      break
-          ")
-          echo "IOS_PLATFORM_VERSION=$RUNTIME" >> "$GITHUB_ENV"
-          echo "IOS_DEVICE_NAME=$DEVICE" >> "$GITHUB_ENV"
-      - run: npm run test:ios
-      - name: Upload Allure results (ios)
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: allure-results-ios
-          path: packages/mobile-tests/allure-results
-          retention-days: 7
-
-  allure-report:
-    runs-on: ubuntu-24.04
-    needs: [api-tests, web-tests, android-tests, ios-tests]
-    if: always()
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - run: npm ci
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: allure-results-*
-          path: raw-results
-      - name: Assemble allure-results per package
-        run: |
-          mkdir -p packages/api-tests/allure-results packages/web-tests/allure-results packages/mobile-tests/allure-results
-          cp -r raw-results/allure-results-api/. packages/api-tests/allure-results/ 2>/dev/null || true
-          cp -r raw-results/allure-results-web/. packages/web-tests/allure-results/ 2>/dev/null || true
-          cp -r raw-results/allure-results-android/. packages/mobile-tests/allure-results/ 2>/dev/null || true
-          cp -r raw-results/allure-results-ios/. packages/mobile-tests/allure-results/ 2>/dev/null || true
-      - run: npm run report:combined
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: ./combined-report
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+        permissions:
+            pages: write
+            id-token: write
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+            - run: npm ci
+            - uses: actions/download-artifact@v8
+              with:
+                  pattern: allure-results-*
+                  path: raw-results
+            - name: Assemble allure-results per package
+              run: |
+                  mkdir -p packages/api-tests/allure-results packages/web-tests/allure-results packages/mobile-tests/allure-results
+                  cp -r raw-results/allure-results-api/. packages/api-tests/allure-results/ 2>/dev/null || true
+                  cp -r raw-results/allure-results-web/. packages/web-tests/allure-results/ 2>/dev/null || true
+                  cp -r raw-results/allure-results-android/. packages/mobile-tests/allure-results/ 2>/dev/null || true
+                  cp -r raw-results/allure-results-ios/. packages/mobile-tests/allure-results/ 2>/dev/null || true
+            - run: npm run report:combined
+            - uses: actions/configure-pages@v6
+            - uses: actions/upload-pages-artifact@v5
+              with:
+                  path: ./combined-report
+            - name: Deploy to GitHub Pages
+              id: deployment
+              uses: actions/deploy-pages@v5

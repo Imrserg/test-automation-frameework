@@ -1,16 +1,16 @@
 {
-  "name": "@framework/web-tests",
-  "version": "1.0.0",
-  "scripts": {
-    "test": "playwright test"
-  },
-  "dependencies": {
-    "@framework/core": "1.0.0"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.47.0",
-    "allure-playwright": "^3.0.0",
-    "allure-js-commons": "^3.12.1",
-    "typescript": "^5.6.0"
-  }
+    "name": "@framework/web-tests",
+    "version": "1.0.0",
+    "scripts": {
+        "test": "playwright test"
+    },
+    "dependencies": {
+        "@framework/core": "1.0.0"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.47.0",
+        "allure-playwright": "^3.0.0",
+        "allure-js-commons": "^3.12.1",
+        "typescript": "^5.6.0"
+    }
 }

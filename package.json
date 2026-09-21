@@ -1,32 +1,42 @@
 {
-  "name": "test-automation-framework",
-  "private": true,
-  "version": "1.0.0",
-  "workspaces": [
-    "packages/core",
-    "packages/api-tests",
-    "packages/web-tests",
-    "packages/mobile-tests"
-  ],
-  "scripts": {
-    "build:core": "npm run build --workspace=@framework/core",
-    "test:api": "npm run test --workspace=@framework/api-tests",
-    "test:web": "npm run test --workspace=@framework/web-tests",
-    "test:android": "npm run test:android --workspace=@framework/mobile-tests",
-    "test:ios": "npm run test:ios --workspace=@framework/mobile-tests",
-    "test:all": "npm run test:web && npm run test:api && npm run test:android && npm run test:ios",
-    "lint": "eslint .",
-    "report:combined": "allure generate packages/*/allure-results -o combined-report --clean"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.5",
-    "@playwright/test": "^1.63.0",
-    "@typescript-eslint/eslint-plugin": "^8.5.0",
-    "@typescript-eslint/parser": "^8.5.0",
-    "allure-commandline": "^2.46.1",
-    "allure-playwright": "^3.12.1",
-    "eslint": "^9.9.0",
-    "globals": "^14.0.0",
-    "typescript": "^5.6.0"
-  }
+    "name": "test-automation-framework",
+    "private": true,
+    "version": "1.0.0",
+    "workspaces": [
+        "packages/core",
+        "packages/api-tests",
+        "packages/web-tests",
+        "packages/mobile-tests"
+    ],
+    "scripts": {
+        "build:core": "npm run build --workspace=@framework/core",
+        "test:api": "npm run test --workspace=@framework/api-tests",
+        "test:web": "npm run test --workspace=@framework/web-tests",
+        "test:android": "npm run test:android --workspace=@framework/mobile-tests",
+        "test:ios": "npm run test:ios --workspace=@framework/mobile-tests",
+        "test:all": "npm run test:web && npm run test:api && npm run test:android && npm run test:ios",
+        "lint": "eslint .",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "report:combined": "allure generate packages/*/allure-results -o combined-report --clean",
+        "prepare": "husky"
+    },
+    "lint-staged": {
+        "*.{ts,tsx,js,cjs,mjs,json,md}": "prettier --write"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.39.5",
+        "@playwright/test": "^1.63.0",
+        "@typescript-eslint/eslint-plugin": "^8.5.0",
+        "@typescript-eslint/parser": "^8.5.0",
+        "allure-commandline": "^2.46.1",
+        "allure-playwright": "^3.12.1",
+        "eslint": "^9.9.0",
+        "eslint-config-prettier": "^10.1.8",
+        "globals": "^14.0.0",
+        "husky": "^9.1.7",
+        "lint-staged": "^17.5.1",
+        "prettier": "^3.9.8",
+        "typescript": "^5.6.0"
+    }
 }

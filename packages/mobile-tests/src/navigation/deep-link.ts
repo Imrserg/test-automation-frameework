@@ -9,8 +9,6 @@ export async function openDeepLink(path: string): Promise<void> {
 
     await driver.execute('mobile: deepLink', {
         url,
-        ...(driver.isAndroid
-            ? { package: env.mobile.androidAppPackage }
-            : { bundleId: env.mobile.iosBundleId }),
+        ...(driver.isAndroid ? { package: env.mobile.androidAppPackage } : { bundleId: env.mobile.iosBundleId }),
     });
 }

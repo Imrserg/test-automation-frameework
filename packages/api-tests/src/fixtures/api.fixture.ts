@@ -6,8 +6,8 @@ import { IUserApiClient } from '../clients/user-api-client.interface';
 // SOLID (D): тест отримує userClient типу IUserApiClient (абстракція),
 // конкретна реалізація підставляється тут — в одному місці.
 type ApiFixtures = {
-userClient: IUserApiClient;
-allureSuiteLabels: void;
+    userClient: IUserApiClient;
+    allureSuiteLabels: void;
 };
 
 export const test = base.extend<ApiFixtures>({

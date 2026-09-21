@@ -1,8 +1,8 @@
-let numbers :number[] = [1, 2, 3, 1000];
+let numbers: number[] = [1, 2, 3, 1000];
 let names: string[] = ['Sarah, Jane, Anna'];
 
 console.table(numbers);
-let sorted: string[] = [...names.sort()]; 
+let sorted: string[] = [...names.sort()];
 console.log(sorted);
 
 let names2: string[] = names[0].split(', ');

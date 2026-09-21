@@ -1,11 +1,12 @@
 import { suite } from 'allure-js-commons';
+import { HttpStatus } from '@framework/core';
 import { test, expect } from '../fixtures/api.fixture';
 import { CreateUserRequestBuilder } from '../data/create-user.builder';
 import { CreateUserResponseSchema, UserProfileSchema } from '../clients/user-api.types';
 
-test.describe('Users API', () => {
+test.describe('User API tests', () => {
     test.beforeEach(async () => {
-        await suite('Users');
+        await suite('User API tests');
     });
 
     test('Should create a user', async ({ userClient }) => {
@@ -14,12 +15,12 @@ test.describe('Users API', () => {
         const response = await userClient.createUser(user);
         const body = CreateUserResponseSchema.parse(await response.json());
 
-        expect(response.status()).toBe(201);
+        expect(response.status(), 'Expected status code 201').toBe(HttpStatus.CREATED);
         expect(body.user.email).toBe(user.email);
         expect(body.token).toBeTruthy();
     });
 
-    test('Should get the current user by token', async ({ userClient }) => {
+    test('Should GET the current user by token', async ({ userClient }) => {
         const user = new CreateUserRequestBuilder().build();
         const created = await userClient.createUser(user);
         const { token } = CreateUserResponseSchema.parse(await created.json());
@@ -27,7 +28,7 @@ test.describe('Users API', () => {
         const response = await userClient.getUser(token);
         const body = UserProfileSchema.parse(await response.json());
 
-        expect(response.status()).toBe(200);
+        expect(response.status(), 'Expected status code 200').toBe(HttpStatus.OK);
         expect(body.email).toBe(user.email);
     });
 
@@ -40,21 +41,21 @@ test.describe('Users API', () => {
         const response = await userClient.updateUser(token, { firstName: 'Updated', email: updatedEmail });
         const body = UserProfileSchema.parse(await response.json());
 
-        expect(response.status()).toBe(200);
+        expect(response.status(), 'Expected status code 200').toBe(HttpStatus.OK);
         expect(body.firstName).toBe('Updated');
         expect(body.email).toBe(updatedEmail);
     });
 
-    test('Should delete the current user by token', async ({ userClient }) => {
+    test('Should DELETE the current user by token', async ({ userClient }) => {
         const user = new CreateUserRequestBuilder().build();
         const created = await userClient.createUser(user);
         const { token } = CreateUserResponseSchema.parse(await created.json());
 
         const response = await userClient.deleteUser(token);
 
-        expect(response.status()).toBe(200);
+        expect(response.status(), 'Expected status code 200').toBe(HttpStatus.OK);
 
         const afterDelete = await userClient.getUser(token);
-        expect(afterDelete.status()).toBe(401);
+        expect(afterDelete.status(), 'Expected status code 401').toBe(HttpStatus.UNAUTHORIZED);
     });
 });

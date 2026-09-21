@@ -1,6 +1,7 @@
 const js = require('@eslint/js');
 const tseslint = require('@typescript-eslint/eslint-plugin');
 const globals = require('globals');
+const prettierConfig = require('eslint-config-prettier');
 
 module.exports = [
     {
@@ -17,6 +18,10 @@ module.exports = [
     },
     js.configs.recommended,
     ...tseslint.configs['flat/recommended'],
+    // Prettier керує форматуванням — вимикає ESLint-правила, що могли б
+    // з ним конфліктувати (indent, quotes, semi тощо). Має йти після
+    // recommended-конфігів, щоб перекрити їх, і до кастомних блоків нижче.
+    prettierConfig,
     {
         rules: {
             '@typescript-eslint/explicit-function-return-type': 'off',
@@ -34,7 +39,8 @@ module.exports = [
                 'error',
                 {
                     selector: "CallExpression[callee.name='expect']",
-                    message: 'Assertions (expect) are not allowed inside Page/Screen Objects. Move the assertion to the test file (SRP).',
+                    message:
+                        'Assertions (expect) are not allowed inside Page/Screen Objects. Move the assertion to the test file (SRP).',
                 },
             ],
         },

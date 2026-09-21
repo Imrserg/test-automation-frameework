@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "skills": {
+        "agent-browser": {
+            "source": "inference-sh/skills",
+            "sourceType": "github",
+            "skillPath": "tools/utilities/agent-browser/SKILL.md",
+            "computedHash": "4ea0004489c54d32c8fce0c8e9a94dd6abcfcc23fe1a77e2ee12e7abac1357d8"
+        },
+        "playwright-cli": {
+            "source": "microsoft/playwright-cli",
+            "sourceType": "github",
+            "skillPath": "skills/playwright-cli/SKILL.md",
+            "computedHash": "1e6cef0264b72fbf47618ccb82644b9a72934b2eeb35186842332928492a3cd2"
+        }
+    }
+}

@@ -16,9 +16,6 @@ test-results/
 playwright-report/
 blob-report/
 
-# Editor/tooling
-.claude/
-
 # OS
 .DS_Store
 
