@@ -61,6 +61,19 @@ ANDROID_APP_PATH=./apps/android/app-debug.apk
 IOS_APP_PATH=./apps/ios/app.zip
 ```
 
+## Форматування коду
+
+Стиль коду форматується автоматично через **Prettier** (конфіг — `.prettierrc.json`),
+конфлікти з ESLint вимкнені через `eslint-config-prettier`.
+
+```bash
+npm run format        # відформатувати всі файли
+npm run format:check  # лише перевірити, без змін (для CI)
+```
+
+Pre-commit hook (**husky** + **lint-staged**) автоматично форматує лише staged-файли
+перед кожним комітом — вручну запускати `npm run format` для нових змін не обов'язково.
+
 ## Звітність
 
 Playwright і WDIO пишуть у Allure-сумісному форматі. Об'єднаний звіт:
@@ -73,6 +86,25 @@ npm run report:combined
 
 `.github/workflows/ci.yml` — lint → api-tests + web-tests на кожен PR;
 android/ios-tests — за ручним запуском (`workflow_dispatch`)
+
+## Claude Code скіли
+
+`.claude/skills/` містить скіли, що знають конвенції саме цього репо — Claude Code
+підхоплює їх автоматично в цій директорії:
+
+| Скіл                                                                                       | Призначення                                                                                                                                     |
+| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `new-test`                                                                                 | Створення нового API/Web/Mobile тесту за наявними патернами (Page/Screen Object, Builder, Zod-схеми, Allure `step()`)                           |
+| `mobile-env-doctor`                                                                        | Діагностика локального iOS Simulator/Android Emulator + Appium (пристрій не знайдено, конфлікт версій, збій драйвера, нестабільність емулятора) |
+| `allure-report-local`                                                                      | Генерація та перегляд об'єднаного Allure-звіту локально — з прогону або з завантажених артефактів CI                                            |
+| `ci-triage`                                                                                | Розбір причини падіння GitHub Actions рану через `gh` CLI замість ручного вставляння логів                                                      |
+| `playwright-cli` ([microsoft/playwright-cli](https://github.com/microsoft/playwright-cli)) | Локальне керування браузером через CLI — корисно звірити реальні `data-testid` перед написанням Page Object                                     |
+
+Встановити ще один зовнішній скіл:
+
+```bash
+npx -y skills add <owner>/<repo> --skill <skill-name> --agent claude-code
+```
 
 ## Наступні кроки для розширення
 
